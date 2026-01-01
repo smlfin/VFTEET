@@ -486,31 +486,34 @@ function populateMonthDropdowns() {
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
     ];
-    const currentMonthIndex = new Date().getMonth(); // 0-indexed
-    const currentYear = new Date().getFullYear();
+    const now = new Date();
+    const currentMonthIndex = now.getMonth();
+    const currentYear = now.getFullYear();
+    const previousYear = currentYear - 1; // Calculate 2025
 
     [monthSelect, customerViewMonthSelect].forEach(selectElement => {
-        selectElement.innerHTML = ''; // Clear existing options
-
-        // Add a default "Select Month" option
+        selectElement.innerHTML = ''; 
+        
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.textContent = '-- Select Month --';
         selectElement.appendChild(defaultOption);
 
-        months.forEach((month, index) => {
-            const option = document.createElement('option');
-            // Store value as "MM-YYYY" or just month index for filtering
-            option.value = `${index + 1}-${currentYear}`; // e.g., "7-2025" for July 2025
-            option.textContent = `${month} ${currentYear}`;
-            selectElement.appendChild(option);
+        // Loop through both years (Previous and Current)
+        [previousYear, currentYear].forEach(year => {
+            months.forEach((month, index) => {
+                const option = document.createElement('option');
+                option.value = `${index + 1}-${year}`; 
+                option.textContent = `${month} ${year}`;
+                selectElement.appendChild(option);
+            });
         });
-        // Select the current month
+
+        // Keep the current month/year selected by default
         selectElement.value = `${currentMonthIndex + 1}-${currentYear}`;
     });
 }
-
-// NEW: Function to filter data by selected month and year
+    // NEW: Function to filter data by selected month and year
 // This function filters your data by selected month and year
 // It also now includes a warning to help you find problematic timestamps.
 // NEW: Function to filter data by selected month and year
