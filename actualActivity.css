@@ -1,0 +1,116 @@
+/* ACTUAL ACTIVITY DASHBOARD STYLES 
+   Modern, Corporate-Casual Theme for SML Group 
+*/
+
+:root {
+    --sml-blue: #007bbd;
+    --sml-light-blue: #e3f2fd;
+    --text-dark: #333;
+    --text-muted: #666;
+    --bg-gray: #f8f9fa;
+    --white: #ffffff;
+    --shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+body { 
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+    padding: 30px; 
+    background-color: var(--bg-gray); 
+    color: var(--text-dark);
+    line-height: 1.6;
+}
+
+h2 { 
+    color: var(--sml-blue); 
+    font-weight: 600;
+    border-bottom: 2px solid var(--sml-light-blue);
+    padding-bottom: 10px;
+    margin-bottom: 25px;
+}
+
+/* --- Control Section --- */
+.controls {
+    background: var(--white);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    margin-bottom: 30px;
+}
+
+label {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+select { 
+    padding: 10px 15px; 
+    border: 1px solid #ddd; 
+    border-radius: 5px; 
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+select:focus {
+    border-color: var(--sml-blue);
+}
+
+/* --- Branch Cards --- */
+h3 { 
+    margin-top: 30px; 
+    background: var(--sml-blue);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px 5px 0 0;
+    margin-bottom: 0;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+ul { 
+    list-style: none; 
+    padding: 0; 
+    margin: 0 0 20px 0;
+    background: var(--white);
+    border-radius: 0 0 8px 8px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+li { 
+    padding: 12px 20px; 
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+li:last-child {
+    border-bottom: none;
+}
+
+li:hover {
+    background-color: var(--sml-light-blue);
+}
+
+/* --- Data Styling --- */
+.emp-info {
+    font-weight: 500;
+}
+
+.emp-code {
+    color: var(--text-muted);
+    font-size: 0.85em;
+    margin-left: 5px;
+}
+
+.stats {
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+}
+
+.stat-visit { color: #2e7d32; } /* Green */
+.stat-call { color: #1565c0; }  /* Blue */
+
+.box { margin-top: 15px; }
