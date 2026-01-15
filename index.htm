@@ -87,10 +87,11 @@
                 <button class="tab-button active" id="allBranchSnapshotTabBtn">All Branch Snapshot</button>
                 <button class="tab-button" id="allStaffOverallPerformanceTabBtn">Overall Staff Performance</button>
                 <button class="tab-button" id="nonParticipatingBranchesTabBtn">Zero Visit Branches</button>
-                <button class="tab-button" id="branchPerformanceTabBtn">Branch Performance</button>
+                
                 <button class="tab-button" id="detailedCustomerViewTabBtn">Detailed Customer View</button>
-                <button class="tab-button" id="employeeManagementTabBtn">Employee Management</button>
+             
  		<button class="tab-button" id="nonParticipantReportTabBtn" onclick="showTab('nonParticipantReportSection')">Non-Participant Report</button>
+<button class="tab-button" onclick="openActualActivityWindow()">Actual Activity</button>
 
             </nav>
         </header>
@@ -292,14 +293,51 @@
                 <div id="nonParticipantsInCallMessage" class="message" style="display: none;"></div>
             </div>
         </section>
+<section id="actualActivitySection" class="report-section" style="display: none;">
+    <h2>Actual Activity Tracker (By Performance Date)</h2>
+    <div class="filter-panel">
+        <select id="actualMonthSelect">
+            <option value="">-- Select Month --</option>
+            <option value="0">January</option>
+            <option value="1">February</option>
+            <option value="2">March</option>
+            <option value="3">April</option>
+            <option value="4">May</option>
+            <option value="5">June</option>
+            <option value="6">July</option>
+            <option value="7">August</option>
+            <option value="8">September</option>
+            <option value="9">October</option>
+            <option value="10">November</option>
+            <option value="11">December</option>
+        </select>
+        <select id="actualBranchSelect">
+            <option value="">-- Select Branch --</option>
+        </select>
+        <select id="actualEmployeeSelect">
+            <option value="">-- Select Employee --</option>
+        </select>
+    </div>
+
+    <div class="stats-container">
+        <div class="stat-card">
+            <h3>Actual Visits</h3>
+            <p id="actualVisitCount">0</p>
+        </div>
+        <div class="stat-card">
+            <h3>Actual Calls</h3>
+            <p id="actualCallCount">0</p>
+        </div>
+    </div>
+</section>
         </main>
-    <footer>
-        <p>&copy; 2025 Employee Canvassing Dashboard</p>
-    </footer>
+   
             <p>&copy; 2025 Employee Canvassing Dashboard</p>
         </footer>
     </div>
-<script src="tabHandler.js"></script> <script src="script.js"></script>
+<script src="actualActivity.js"></script> 
+<script src="tabHandler.js"></script> 
+<script src="script.js"></script>
 <script src="nonParticipantsReport.js"></script>
    </body>
 </html>
