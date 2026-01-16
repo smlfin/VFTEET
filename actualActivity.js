@@ -11,8 +11,6 @@ async function fetchActivityData() {
     const res = await fetch(CSV_URL);
     const text = await res.text();
 
-    // Robust splitting: Only splits on commas outside of quotes
-    // This ensures names like "RAHUL RAJ" or "Sandhyamol T" are preserved fully
     const rows = text.trim().split("\n").map(row => {
         return row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
                   .map(cell => cell.replace(/^"|"$/g, '').trim());
@@ -21,17 +19,16 @@ async function fetchActivityData() {
     rows.shift(); // remove header
 
     return rows.map(r => ({
-        date: r[1],      // Column B (dd/mm/yyyy)
+        date: r[1],
         branch: r[2] || "Unknown", 
         empName: r[3] || "N/A",   
         empCode: r[4] || "N/A",   
-        type: r[6]       // Column G (Visit / Call / Visits / Calls)
+        type: r[6]
     }));
 }
 
 /* ---------- DASHBOARD WINDOW ---------- */
 window.openActualActivityWindow = async function () {
-
     const win = window.open("", "ActualActivityReport", "width=1000,height=800");
     if (!win) {
         alert("Popup blocked. Please allow popups.");
@@ -51,6 +48,7 @@ window.openActualActivityWindow = async function () {
             --sml-light: #f0f7ff;
             --text-main: #2c3e50;
             --bg-body: #f4f7f9;
+            --success-green: #28a745;
         }
         body { 
             font-family: 'Segoe UI', Tahoma, sans-serif; 
@@ -58,7 +56,7 @@ window.openActualActivityWindow = async function () {
             color: var(--text-main); 
             margin: 0; 
             padding: 20px;
-            font-size: 13px; /* Smaller, cleaner font size */
+            font-size: 13px;
         }
         .header {
             display: flex;
@@ -120,97 +118,132 @@ window.openActualActivityWindow = async function () {
             border-radius: 12px;
             font-weight: bold;
             font-size: 11px;
-            min-width: 70px;
+            min-width: 90px;
             text-align: center;
         }
         .badge-visit { background: #e6f4ea; color: #1e7e34; border: 1px solid #c3e6cb; }
         .badge-call { background: #e7f3ff; color: #0056b3; border: 1px solid #b8daff; }
+        /* Style for reaching target */
+        .achieved { background: var(--success-green) !important; color: white !important; border: none; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h2>SML Group | Actual Activity Summary</h2>
-        <div style="font-size: 11px; color: #666;">Conglomerate: Finance • EV • Solar • Health Care</div>
-    </div>
+<div class="header">
+    <h2>SML Group | Actual Activity Summary</h2>
+    <div style="font-size: 11px; color: #666;">Conglomerate: Finance • EV • Solar • Health Care</div>
+</div>
 
-    <div class="controls">
-        <strong>Filter Month:</strong>
-        <select id="month">
-            <option value="">-- Choose Month --</option>
-            ${["January","February","March","April","May","June","July","August","September","October","November","December"]
-                .map((m,i)=>`<option value="${i}">${m}</option>`).join("")}
-        </select>
-    </div>
+<div class="controls">
+    <strong>Filter Month:</strong>
+    <select id="month">
+        <option value="">-- Choose Month --</option>
+        ${["January","February","March","April","May","June","July","August","September","October","November","December"]
+            .map((m,i)=>`<option value="${i}">${m}</option>`).join("")}
+    </select>
+    <button id="downloadCsvBtn">Download CSV</button>
+</div>
 
-    <div id="result"></div>
+<div id="result"></div>
 
-    <script>
-    const rawData = ${JSON.stringify(data)};
+<script>
+const rawData = ${JSON.stringify(data)};
+const VISIT_TARGET = 2;
+const CALL_TARGET = 50;
+let __lastGroupedForDownload = null;
 
-    function renderSummary() {
-        const month = document.getElementById("month").value;
-        const container = document.getElementById("result");
-        container.innerHTML = "";
+function renderSummary() {
+    const month = document.getElementById("month").value;
+    const container = document.getElementById("result");
+    container.innerHTML = "";
 
-        if (month === "") return;
+    if (month === "") return;
 
-        const grouped = {};
+    const grouped = {};
+    __lastGroupedForDownload = grouped;
 
-        rawData.forEach(r => {
-            if (!r.date || r.empCode === "N/A") return;
+    rawData.forEach(r => {
+        if (!r.date || r.empCode === "N/A") return;
+        const parts = r.date.split("/");
+        if (parts.length !== 3) return;
+        if (Number(parts[1]) - 1 != month) return;
 
-            const parts = r.date.split("/");
-            if (parts.length !== 3) return;
+        if (!grouped[r.branch]) grouped[r.branch] = {};
+        if (!grouped[r.branch][r.empCode]) {
+            grouped[r.branch][r.empCode] = { name: r.empName, visits: 0, calls: 0 };
+        }
 
-            if (Number(parts[1]) - 1 != month) return;
+        const typeStr = (r.type || "").toLowerCase().trim();
+        if (typeStr.includes("visit")) grouped[r.branch][r.empCode].visits++;
+        if (typeStr.includes("call")) grouped[r.branch][r.empCode].calls++;
+    });
 
-            if (!grouped[r.branch]) grouped[r.branch] = {};
-            if (!grouped[r.branch][r.empCode]) {
-                grouped[r.branch][r.empCode] = { name: r.empName, visits: 0, calls: 0 };
-            }
+    Object.keys(grouped).sort().forEach(branch => {
+        const card = document.createElement("div");
+        card.className = "branch-card";
 
-            // CLEANING THE TYPE STRING (Fixes "Calls" vs "Call" bug)
-            const typeStr = (r.type || "").toLowerCase().trim();
-            
-            if (typeStr.includes("visit")) grouped[r.branch][r.empCode].visits++;
-            if (typeStr.includes("call")) grouped[r.branch][r.empCode].calls++;
-        });
+        const head = document.createElement("div");
+        head.className = "branch-header";
+        head.textContent = branch;
+        card.appendChild(head);
 
-        Object.keys(grouped).sort().forEach(branch => {
-            const card = document.createElement("div");
-            card.className = "branch-card";
-            
-            const head = document.createElement("div");
-            head.className = "branch-header";
-            head.textContent = branch;
-            card.appendChild(head);
+        const ul = document.createElement("ul");
+        Object.entries(grouped[branch])
+            .sort((a,b) => a[1].name.localeCompare(b[1].name))
+            .forEach(([code, emp]) => {
+                const li = document.createElement("li");
+                
+                // Determine if target reached for styling
+                const visitClass = emp.visits >= VISIT_TARGET ? "badge badge-visit achieved" : "badge badge-visit";
+                const callClass = emp.calls >= CALL_TARGET ? "badge badge-call achieved" : "badge badge-call";
 
-            const ul = document.createElement("ul");
-            Object.entries(grouped[branch])
-                .sort((a,b) => a[1].name.localeCompare(b[1].name))
-                .forEach(([code, emp]) => {
-                    const li = document.createElement("li");
-                    li.innerHTML = \`
-                        <div class="emp-name">\${emp.name}<span class="emp-code">(\${code})</span></div>
-                        <div class="badge-box">
-                            <span class="badge badge-visit">Visits: \${emp.visits}</span>
-                            <span class="badge badge-call">Calls: \${emp.calls}</span>
-                        </div>
-                    \`;
-                    ul.appendChild(li);
-                });
+                li.innerHTML = \`
+                    <div class="emp-name">\${emp.name}<span class="emp-code">(\${code})</span></div>
+                    <div class="badge-box">
+                        <span class="\${visitClass}">Visits: \${emp.visits} / \${VISIT_TARGET}</span>
+                        <span class="\${callClass}">Calls: \${emp.calls} / \${CALL_TARGET}</span>
+                    </div>
+                \`;
+                ul.appendChild(li);
+            });
 
-            card.appendChild(ul);
-            container.appendChild(card);
-        });
+        card.appendChild(ul);
+        container.appendChild(card);
+    });
+}
+
+function downloadActualActivityCSV() {
+    if (!__lastGroupedForDownload) {
+        alert("Please select a month first.");
+        return;
     }
 
-    document.getElementById("month").onchange = renderSummary;
-    </script>
+    let csv = "Branch,Employee Code,Employee Name,Visits Actual,Visits Target,Calls Actual,Calls Target\\n";
+
+    Object.entries(__lastGroupedForDownload).forEach(([branch, emps]) => {
+        Object.entries(emps).forEach(([code, emp]) => {
+            csv += \`"\${branch}","\${code}","\${emp.name}",\${emp.visits},\${VISIT_TARGET},\${emp.calls},\${CALL_TARGET}\\n\`;
+        });
+    });
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    const monthName = document.getElementById("month").selectedOptions[0].text;
+
+    a.href = URL.createObjectURL(blob);
+    a.download = \`Actual_Activity_\${monthName}.csv\`;
+    a.click();
+}
+
+document.getElementById("month").onchange = renderSummary;
+document.getElementById("downloadCsvBtn").onclick = downloadActualActivityCSV;
+<\/script>
 </body>
 </html>
     `);
 
     win.document.close();
 };
+
+// Main page listener
+document.getElementById("actualActivityBtn").addEventListener("click", openActualActivityWindow);
