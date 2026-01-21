@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VFL | Strategic Intelligence Portal V11.0</title>
+    <link rel="stylesheet" href="actualActivity.css">
+    <style>
+        /* Supplemental layout styles for the split-screen view */
+        .dm-side-by-side-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        .um-container { margin-bottom: 20px; }
+        .branch-grid { display: flex; flex-direction: column; gap: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="brand-strip">
+    <div class="brand-text">
+        <h1>VFL</h1>
+        <p>Finance • EV • Solar • Health Care</p>
+    </div>
+    <div class="header-right" style="text-align: right;">
+        <div class="header-title" style="color: var(--sml-blue); font-weight: 900; font-size: 20px;">STRATEGIC PERFORMANCE DASHBOARD</div>
+        <div class="header-subtitle" style="font-size: 11px; color: var(--text-muted); font-weight: 700;"> | 45 YEARS OF EXCELLENCE</div>
+    </div>
+</div>
+
+<div class="control-console">
+    <strong>REPORTING PERIOD:</strong>
+    <select id="selMonth" class="sml-dropdown">
+        <option value="">-- Choose Month --</option>
+        <option value="0">January</option>
+        <option value="1">February</option>
+        <option value="2">March</option>
+        <option value="3">April</option>
+        <option value="4">May</option>
+        <option value="5">June</option>
+        <option value="6">July</option>
+        <option value="7">August</option>
+        <option value="8">September</option>
+        <option value="9">October</option>
+        <option value="10">November</option>
+        <option value="11">December</option>
+    </select>
+    
+    <button class="sml-btn btn-renjith" id="btnRenjith">Renjith View</button>
+    <button class="sml-btn btn-tm" id="btnSubeesh">Subeesh Kumar</button>
+    <button class="sml-btn btn-tm" id="btnVishnu">Vishnu Venugopal</button>
+    <button class="sml-btn btn-tm" id="btnArun">Arunkumar</button>
+    <button class="sml-btn btn-reset" onclick="location.reload()">Clear All</button>
+    <button class="sml-btn btn-download" id="btnExport">Export All Assets</button>
+</div>
+
+<div id="snapshotDisplay"></div>
+<div id="activityDisplay"></div>
+
+<script src="actualActivity.js"></script>
+</body>
+</html>
