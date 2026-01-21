@@ -1,443 +1,323 @@
 /* =============================================================================
-   SML GROUP | ENTERPRISE ACTIVITY & REGIONAL PERFORMANCE PORTAL (V5.2)
+   SML GROUP | ENTERPRISE ACTIVITY & LEADERSHIP INTELLIGENCE SYSTEM (V11.6)
    -----------------------------------------------------------------------------
-   Architecture: High-Fidelity Data Normalization & Exclusion Logic
-   Focus: Finance, Electric Vehicles, Solar, and Health Care
-   Legacy: 45 Years of Conglomerate Excellence
-   -----------------------------------------------------------------------------
-   CRITICAL UPDATE - DATA BULLETPROOFING:
-   - Case-Insensitive Matching: All EmpCodes are normalized to UpperCase/Trimmed.
-   - Exclusion Integrity: Renjith's staff are strictly filtered out of Regional
-     TM reports even if codes have mixed casing (e.g., vf01 vs VF01).
-   - Export Fidelity: CSV line breaks optimized for Excel/Sheets compatibility.
-   - Visual Engine: Restored full 460+ line robust architecture.
+   Full Integration: Calls, Visits, Hierarchy Fixes, and Strategic Export
    ============================================================================= */
 
-/**
- * STRATEGIC ASSET REPOSITORY
- */
-const DATA_EP_ACTIVITY = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTOdQ33IqaCOXKXhjzPMB9e35fajKZfN7n6AOn5Citte64Fu9KXz4hWh1GK52848y-1YIm7vnp9tArr/pub?gid=1745453083&single=true&output=csv";
-const DATA_EP_MAPPING  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTOdQ33IqaCOXKXhjzPMB9e35fajKZfN7n6AOn5Citte64Fu9KXz4hWh1GK52848y-1YIm7vnp9tArr/pub?gid=46064045&single=true&output=csv";
+const DATA_SOURCE_ACTIVITY = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTOdQ33IqaCOXKXhjzPMB9e35fajKZfN7n6AOn5Citte64Fu9KXz4hWh1GK52848y-1YIm7vnp9tArr/pub?gid=1745453083&single=true&output=csv";
+const DATA_SOURCE_MAPPING  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTOdQ33IqaCOXKXhjzPMB9e35fajKZfN7n6AOn5Citte64Fu9KXz4hWh1GK52848y-1YIm7vnp9tArr/pub?gid=46064045&single=true&output=csv";
+
+let coreData = [];
+let activeMap = [];
+let activeFiltered = [];
+let currentTM = "";
 
 /**
- * @function fetchActivityData
- * @description Ingests primary activity logs and normalizes Employee Codes.
+ * 1. SYSTEM INITIALIZER
  */
-async function fetchActivityData() {
-    console.log("[SML SECURITY] Initializing Secure Data Stream...");
+window.addEventListener('DOMContentLoaded', async () => {
+    console.log("[SML-SYSTEM] Initializing Intelligence Modules...");
+
+    const launchBtn = document.getElementById('actualActivityBtn');
+    if (launchBtn) {
+        launchBtn.onclick = () => {
+            window.open("actualactivity.htm", "SML_Group_V11", "width=1500,height=1000,resizable=yes,scrollbars=yes");
+        };
+    }
+
+    const dashboardContainer = document.getElementById('snapshotDisplay');
+    if (dashboardContainer) {
+        coreData = await fetchSMLActivityData();
+        activeMap = await fetchSMLRegionalMapping();
+        setupDashboardListeners();
+    }
+});
+
+/**
+ * 2. DATA ACQUISITION
+ */
+async function fetchSMLActivityData() {
     try {
-        const response = await fetch(DATA_EP_ACTIVITY);
-        const rawText = await response.text();
-
-        // Advanced Parser: Accounts for commas within quoted branch names or comments
-        const dataRows = rawText.trim().split("\n").map(line => {
+        const response = await fetch(DATA_SOURCE_ACTIVITY);
+        const textData = await response.text();
+        const entries = textData.trim().split("\n").map(line => {
             return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
                        .map(cell => cell.replace(/^"|"$/g, '').trim());
         });
-
-        // Shift headers to isolate record data
-        dataRows.shift();
-
-        return dataRows.map(r => ({
-            date: r[1],
-            branchName: r[2] || "SML Unassigned", 
-            empName: r[3] || "SML Associate",   
-            // BULLETPROOFING: Normalize the code during ingestion
-            empCode: (r[4] || "N/A").toUpperCase().trim(),
-            type: r[6],
-            branchCode: (r[24] || "N/A").trim() // Column Y (Index 24)
+        entries.shift(); 
+        return entries.map(row => ({
+            date: row[1] || "",
+            branchName: row[2] || "Unassigned",
+            empName: row[3] || "Associate",
+            empCode: (row[4] || "N/A").toUpperCase().trim(),
+            activityType: (row[6] || "").toLowerCase().trim(),
+            branchCode: (row[24] || "N/A").trim()
         }));
-    } catch (criticalError) {
-        console.error("[SML CRITICAL] Primary Activity Fetch Failure:", criticalError);
+    } catch (e) {
+        console.error("[SML-ERROR] Activity stream unreachable:", e);
+        return [];
+    }
+}
+
+async function fetchSMLRegionalMapping() {
+    try {
+        const response = await fetch(DATA_SOURCE_MAPPING);
+        const textData = await response.text();
+        const entries = textData.trim().split("\n").map(line => {
+            return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
+                       .map(cell => cell.replace(/^"|"$/g, '').trim());
+        });
+        entries.shift();
+        return entries.map(row => ({
+            branchCode: (row[1] || "").trim(),
+            umName: (row[2] || "N/A").trim(), 
+            dmName: (row[3] || "N/A").trim(), 
+            rmName: (row[4] || "N/A").trim(), 
+            tmOwner: (row[5] || "").toUpperCase().trim(), 
+            renjithCode: (row[10] || "").toUpperCase().trim(),
+            renjithUM: (row[13] || "").trim() // Added Column N (Renjith's specific UM mapping)
+        }));
+    } catch (e) {
         return [];
     }
 }
 
 /**
- * @function fetchRegionalMapping
- * @description Bridges Branch Codes to Regional Managers with Case-Normalization.
+ * 3. DASHBOARD UI ENGINE
  */
-window.fetchRegionalMapping = async function() {
-    console.log("[SML SYSTEM] Normalizing Regional Definitions...");
-    try {
-        const response = await fetch(DATA_EP_MAPPING);
-        const text = await response.text();
-        const rows = text.trim().split("\n").map(line => {
-            return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
-                       .map(cell => cell.replace(/^"|"$/g, '').trim());
-        });
-        rows.shift();
-        
-        return rows.map(r => ({
-            branchCode: (r[1] || "").trim(),    // Key: Column B
-            tmName: (r[5] || "").toUpperCase().trim(), // Key: Column F
-            // BULLETPROOFING: Renjith codes mapped to uppercase
-            renjithCode: (r[10] || "").toUpperCase().trim() 
-        }));
-    } catch (err) {
-        console.error("[SML SYSTEM] Mapping Logic Fault:", err);
-        return [];
+function setupDashboardListeners() {
+    const safeAssign = (id, tm) => {
+        const el = document.getElementById(id);
+        if (el) el.onclick = () => applyFilters(tm);
+    };
+
+    safeAssign('btnRenjith', 'RENJITH');
+    safeAssign('btnSubeesh', 'SUBEESH KUMAR');
+    safeAssign('btnVishnu',  'VISHNU VENUGOPAL');
+    safeAssign('btnArun',    'ARUNKUMAR');
+    
+    if(document.getElementById('btnExport')) document.getElementById('btnExport').onclick = exportToCSV;
+}
+
+async function applyFilters(tmName) {
+    const monthIdx = document.getElementById("selMonth").value;
+    if(!monthIdx) return alert("Please select a month.");
+
+    currentTM = tmName;
+    const renjithCodes = activeMap.map(m => m.renjithCode).filter(c => c);
+
+    let filtered = [];
+    let tmContext = [];
+
+    if(tmName === 'RENJITH') {
+        filtered = coreData.filter(r => renjithCodes.includes(r.empCode));
+        const activeEmpCodes = [...new Set(filtered.map(f => f.empCode))];
+        tmContext = activeMap.filter(m => activeEmpCodes.includes(m.renjithCode));
+    } else {
+        tmContext = activeMap.filter(m => m.tmOwner === tmName);
+        const branchList = tmContext.map(m => m.branchCode);
+        filtered = coreData.filter(r => branchList.includes(r.branchCode) && !renjithCodes.includes(r.empCode));
     }
-};
+
+    filtered = filtered.filter(r => (Number(r.date.split("/")[1]) - 1) == monthIdx);
+    activeFiltered = filtered;
+    
+    renderSnapshot(tmName, tmContext, filtered);
+    renderBranchDetails(filtered);
+}
 
 /**
- * @function openActualActivityWindow
- * @description Launches the robust executive reporting UI.
+ * UPDATED: renderSnapshot with Hard-Core Renjith Filtering
  */
-window.openActualActivityWindow = async function () {
-    const reportWin = window.open("", "SML_Conglomerate_Report", "width=1350,height=950,resizable=yes");
-    if (!reportWin) {
-        alert("SML SYSTEM: Popup Blocked. High-fidelity dashboards require popup permission.");
+/**
+ * UPDATED: renderSnapshot - Grouped by Branch with Employee Detail
+ * Preserves Renjith Strict Logic & Clean RM Context
+ */
+function renderSnapshot(tmName, tmContext, filtered) {
+    const snapRoot = document.getElementById("snapshotDisplay");
+    if(tmContext.length === 0) {
+        snapRoot.innerHTML = "";
         return;
     }
 
-    const masterActivity = await fetchActivityData();
+    const nameMap = {};
+    coreData.forEach(d => nameMap[d.branchCode] = d.branchName);
 
-    reportWin.document.write(`
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>SML Group | Conglomerate Intelligence Dashboard</title>
-    <style>
-        /* SML ENTERPRISE DESIGN SYSTEM V5.2 */
-        :root {
-            --sml-blue: #007bbd;
-            --sml-sky: #e1f5fe;
-            --sml-navy: #0d47a1;
-            --white: #ffffff;
-            --ui-bg: #f8fafc;
-            --ui-border: #e2e8f0;
-            --success-color: #10b981;
-            --alert-color: #f59e0b;
-            --special-color: #8b5cf6;
-            --text-dark: #1e293b;
-            --text-muted: #64748b;
-        }
-
-        body { 
-            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; 
-            background: var(--ui-bg); 
-            color: var(--text-dark); 
-            margin: 0; 
-            padding: 50px;
-            font-size: 14px;
-        }
-
-        /* HEADER & IDENTITY */
-        .corporate-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            border-bottom: 6px solid var(--sml-blue);
-            padding-bottom: 25px;
-            margin-bottom: 50px;
-        }
-
-        .header-left h1 { 
-            margin: 0; 
-            color: var(--sml-blue); 
-            font-size: 2.6rem; 
-            font-weight: 900;
-            letter-spacing: -2px;
-        }
-
-        .header-left span { 
-            display: block;
-            margin-top: 5px;
-            font-size: 11px; 
-            font-weight: 700; 
-            color: var(--text-muted); 
-            letter-spacing: 4px;
-            text-transform: uppercase;
-        }
-
-        /* COMMAND CENTER CONTROLS */
-        .command-bar { 
-            background: var(--white); 
-            padding: 30px 45px; 
-            border-radius: 20px; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.04);
-            margin-bottom: 50px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
-            border: 1px solid var(--ui-border);
-        }
-
-        .command-label { font-size: 12px; font-weight: 800; color: var(--sml-navy); }
-
-        .select-modern { 
-            padding: 14px 20px; 
-            border-radius: 12px; 
-            border: 2px solid var(--ui-border); 
-            font-size: 14px;
-            font-weight: 600;
-            background: #fff;
-            color: var(--text-dark);
-            outline: none;
-            cursor: pointer;
-            transition: 0.2s ease-in-out;
-        }
-
-        .select-modern:focus { border-color: var(--sml-blue); ring: 4px var(--sml-sky); }
-
-        .btn-action {
-            padding: 14px 28px;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: 800;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            color: #fff;
-        }
-
-        .btn-action:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); filter: brightness(1.1); }
-        .btn-action:active { transform: translateY(-1px); }
-
-        .btn-warn { background: var(--alert-color); }
-        .btn-special { background: var(--special-color); }
-        .btn-neutral { background: #64748b; }
-        .btn-export { background: var(--sml-navy); margin-left: auto; }
-
-        /* DATA MODULE ARCHITECTURE */
-        .branch-module {
-            background: var(--white);
-            margin-bottom: 45px;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
-            border: 1px solid var(--ui-border);
-        }
-
-        .branch-title-bar {
-            background: linear-gradient(135deg, var(--sml-navy) 0%, var(--sml-blue) 100%);
-            color: var(--white);
-            padding: 20px 40px;
-            font-weight: 800;
-            font-size: 15px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .employee-table { width: 100%; border-collapse: collapse; }
-        .employee-row { border-bottom: 1px solid #f1f5f9; }
-        .employee-row:hover { background: #f8fafc; }
-        .employee-row td { padding: 25px 40px; }
-
-        .meta-container { display: flex; flex-direction: column; }
-        .meta-name { font-weight: 800; color: #0f172a; font-size: 17px; margin-bottom: 4px; }
-        .meta-id { color: var(--text-muted); font-size: 12px; font-weight: 600; font-family: monospace; }
-
-        .kpi-container { display: flex; gap: 20px; }
-
-        .kpi-shield {
-            padding: 12px 24px;
-            border-radius: 15px;
-            font-weight: 900;
-            font-size: 13px;
-            min-width: 160px;
-            text-align: center;
-            border: 2px solid #f1f5f9;
-            background: #fff;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            color: #334155;
-        }
-
-        .kpi-label { font-size: 9px; text-transform: uppercase; opacity: 0.6; letter-spacing: 1.5px; font-weight: 700; }
-        .is-achieved { background: var(--success-color) !important; color: #fff !important; border: none; }
-
-        @media print { .command-bar { display: none; } body { padding: 0; } }
-    </style>
-</head>
-<body>
-
-<div class="corporate-header">
-    <div class="header-left">
-        <h1>SML Group</h1>
-        <span>Finance • Electric Vehicles • Solar • Health Care</span>
-    </div>
-    <div style="text-align: right">
-        <div style="color: var(--sml-blue); font-weight: 900; font-size: 20px;">ACTIVITY INTELLIGENCE</div>
-        <div style="font-size: 11px; color: var(--text-muted); font-weight: 700; margin-top: 5px;">EST. 1980 | ROBUST COMPLIANCE SYSTEM</div>
-    </div>
-</div>
-
-<div class="command-bar">
-    <span class="command-label">PERIOD:</span>
-    <select id="uiMonth" class="select-modern">
-        <option value="">-- Select Reporting Month --</option>
-        ${["January","February","March","April","May","June","July","August","September","October","November","December"]
-            .map((m,i)=>`<option value="${i}">${m}</option>`).join("")}
-    </select>
-
-    <button id="callRenjith" class="btn-action btn-warn">Renjith Exclusive</button>
-    <button class="btn-action btn-special" onclick="applyRegionalFilter('SUBEESH KUMAR')">Subeesh Kumar</button>
-    <button class="btn-action btn-special" onclick="applyRegionalFilter('VISHNU VENUGOPAL')">Vishnu Venugopal</button>
-    <button class="btn-action btn-special" onclick="applyRegionalFilter('ARUNKUMAR')">Arunkumar</button>
+    const dmStore = {};
+    const umStore = {};
     
-    <button id="callReset" class="btn-action btn-neutral">Show All Assets</button>
-    <button id="callExport" class="btn-action btn-export">Export Verified CSV</button>
-</div>
+    filtered.forEach(entry => {
+        const type = entry.activityType.includes("visit") ? 'v' : 'c';
+        
+        const map = tmContext.find(m => {
+            return tmName === 'RENJITH' ? m.renjithCode === entry.empCode : m.branchCode === entry.branchCode;
+        });
 
-<div id="reportSurface"></div>
+        if (map) {
+            let displayUM, displayDM;
 
-<script>
-    const systemActivityData = ${JSON.stringify(masterActivity)};
-    const V_GOAL = 2;
-    const C_GOAL = 50;
-    let activeDataCache = null;
-
-    /**
-     * @function rebuildDashboard
-     * @description Core UI Logic with Case-Sensitive Normalization for Filtering.
-     */
-    function rebuildDashboard(filterFunction = null) {
-        const targetMonth = document.getElementById("uiMonth").value;
-        const surface = document.getElementById("reportSurface");
-        surface.innerHTML = "";
-
-        if (targetMonth === "") return;
-
-        const grouping = {};
-        systemActivityData.forEach(row => {
-            if (!row.date || row.empCode === "N/A") return;
-            if (filterFunction && !filterFunction(row)) return;
-
-            const split = row.date.split("/");
-            if (split.length !== 3) return;
-            if ((Number(split[1]) - 1) != targetMonth) return;
-
-            if (!grouping[row.branchName]) grouping[row.branchName] = {};
-            if (!grouping[row.branchName][row.empCode]) {
-                grouping[row.branchName][row.empCode] = { name: row.empName, v: 0, c: 0 };
+            // RENJITH STRICT LOGIC
+            if (tmName === 'RENJITH') {
+                const checkUM = (map.renjithUM || "").trim().toUpperCase();
+                displayUM = (checkUM === "SENTHIL KUMAR") ? "SENTHIL KUMAR" : "RENJITH (Direct)";
+                displayDM = "RENJITH REGION"; 
+            } else {
+                displayUM = map.umName;
+                displayDM = map.dmName;
             }
 
-            const actType = (row.type || "").toLowerCase().trim();
-            if (actType.includes("visit")) grouping[row.branchName][row.empCode].v++;
-            if (actType.includes("call")) grouping[row.branchName][row.empCode].c++;
-        });
+            // Initialize Stores
+            if(!dmStore[displayDM]) dmStore[displayDM] = { v: 0, c: 0, ums: {} };
+            if(!dmStore[displayDM].ums[displayUM]) dmStore[displayDM].ums[displayUM] = { v: 0, c: 0 };
+            
+            if(!umStore[displayUM]) umStore[displayUM] = { v: 0, c: 0, branches: {} };
+            
+            // Initialize Branch within UM
+            if(!umStore[displayUM].branches[entry.branchCode]) {
+                umStore[displayUM].branches[entry.branchCode] = { 
+                    name: nameMap[entry.branchCode] || entry.branchCode, 
+                    v: 0, c: 0, employees: {} 
+                };
+            }
 
-        activeDataCache = grouping;
+            // Initialize Employee within Branch
+            const bRef = umStore[displayUM].branches[entry.branchCode];
+            if(!bRef.employees[entry.empCode]) {
+                bRef.employees[entry.empCode] = { name: entry.empName, v: 0, c: 0 };
+            }
 
-        // Double Alpha Sorting: Branch > Employee
-        const sortedBranches = Object.keys(grouping).sort();
+            // Increment All Levels
+            dmStore[displayDM][type]++;
+            dmStore[displayDM].ums[displayUM][type]++;
+            umStore[displayUM][type]++;
+            bRef[type]++;
+            bRef.employees[entry.empCode][type]++;
+        }
+    });
 
-        sortedBranches.forEach(branch => {
-            const module = document.createElement("div");
-            module.className = "branch-module";
-            module.innerHTML = \`<div class="branch-title-bar"><span>\${branch}</span><span>SML CORE DATA</span></div>\`;
+    // 1. Generate DM Section
+    let dmHtml = Object.entries(dmStore).map(([dm, data]) => `
+        <div class="dm-container">
+            <div class="module-header" style="background:var(--accent-purple); color:white;">
+                <strong>DM: ${dm}</strong>
+                <small>V: ${data.v} | C: ${data.c}</small>
+            </div>
+            <div class="branch-grid">${Object.entries(data.ums).map(([um, s]) => `
+                <div class="branch-link"><span>${um}</span><span class="branch-score">V:${s.v}</span></div>`).join("")}
+            </div>
+        </div>`).join("");
 
-            const table = document.createElement("table");
-            table.className = "employee-table";
-
-            Object.entries(grouping[branch])
-                .sort((a, b) => a[1].name.localeCompare(b[1].name))
-                .forEach(([code, emp]) => {
-                    const tr = document.createElement("tr");
-                    tr.className = "employee-row";
-
-                    const vCls = emp.v >= V_GOAL ? "kpi-shield is-achieved" : "kpi-shield";
-                    const cCls = emp.c >= C_GOAL ? "kpi-shield is-achieved" : "kpi-shield";
-
-                    tr.innerHTML = \`
-                        <td>
-                            <div class="meta-container">
-                                <span class="meta-name">\${emp.name}</span>
-                                <span class="meta-id">ID: \${code}</span>
-                            </div>
-                        </td>
-                        <td align="right">
-                            <div class="kpi-container">
-                                <div class="\${vCls}">
-                                    <span class="kpi-label">Field Visits</span>
-                                    <span>\${emp.v} / \${V_GOAL}</span>
-                                </div>
-                                <div class="\${cCls}">
-                                    <span class="kpi-label">Phone Calls</span>
-                                    <span>\${emp.c} / \${C_GOAL}</span>
-                                </div>
-                            </div>
-                        </td>
-                    \`;
-                    table.appendChild(tr);
-                });
-
-            module.appendChild(table);
-            surface.appendChild(module);
-        });
-    }
-
-    /**
-     * RENJITH EXCLUSIVE FILTER
-     * Matches normalized codes from Column K only.
-     */
-    async function filterRenjith() {
-        const mapping = await window.opener.fetchRegionalMapping();
-        const renjithCodes = mapping.map(m => m.renjithCode).filter(c => c);
-        rebuildDashboard(row => renjithCodes.includes(row.empCode));
-    }
-
-    /**
-     * REGIONAL STRATEGIC FILTER
-     * Matches Branches but strictly EXCLUDES Renjith's codes (normalized).
-     */
-    window.applyRegionalFilter = async function(tm) {
-        if (document.getElementById("uiMonth").value === "") return alert("Select month.");
-        const mapping = await window.opener.fetchRegionalMapping();
+    // 2. Generate UM Section (Grouped by Branch)
+    let umHtml = Object.entries(umStore).map(([um, data]) => {
+        const titleLabel = (tmName === 'RENJITH' && um === "RENJITH (Direct)") ? "TM" : "UM";
         
-        const targetBranches = mapping.filter(m => m.tmName && m.tmName.includes(tm.toUpperCase()))
-                                      .map(m => m.branchCode);
+        // Sort Branches Alphabetically
+        const sortedBranches = Object.entries(data.branches).sort((a, b) => a[1].name.localeCompare(b[1].name));
+
+        return `
+        <div class="module-branch">
+            <div class="module-header" style="background: var(--sml-blue); color: white;">
+                <span>${titleLabel} - ${um}</span>
+                <small>V: ${data.v} | C: ${data.c}</small>
+            </div>
+            <div class="module-content" style="padding: 5px;">
+                ${sortedBranches.map(([code, b]) => `
+                    <div class="branch-group" style="margin-bottom: 10px; border: 1px solid #eee; border-radius: 6px; overflow: hidden;">
+                        <div style="background: #f8fafc; padding: 6px 10px; font-size: 0.85rem; font-weight: 700; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
+                            <span>${b.name} (${code})</span>
+                            <span style="color: var(--sml-blue);">V: ${b.v} | C: ${b.c}</span>
+                        </div>
+                        <table class="module-table" style="width: 100%; border-collapse: collapse;">
+                            ${Object.values(b.employees).sort((a,b) => a.name.localeCompare(b.name)).map(e => `
+                                <tr style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 6px 10px; font-size: 0.8rem; color: #334155;">${e.name}</td>
+                                    <td align="right" style="padding: 6px 10px; white-space: nowrap;">
+                                        <span class="stat-badge ${e.v > 0 ? 'achieved' : ''}" style="font-size: 0.7rem;">V: ${e.v}</span>
+                                        <span class="stat-badge" style="background:#64748b; font-size: 0.7rem;">C: ${e.c}</span>
+                                    </td>
+                                </tr>
+                            `).join("")}
+                        </table>
+                    </div>
+                `).join("")}
+            </div>
+        </div>`;
+    }).join("");
+
+    // RM Context: Clear Stalin Jose for Renjith
+    const regionalRM = (tmName === 'RENJITH') ? "N/A" : (tmContext.find(m => m.rmName && m.rmName !== "N/A")?.rmName || "N/A");
+
+    snapRoot.innerHTML = `
+        <div class="snapshot-card">
+            <div class="snapshot-header"><h2>SML Executive Intelligence: ${tmName}</h2></div>
+            <div class="regional-strip" style="background: var(--sml-blue); color: white; margin:15px; padding:20px; border-radius:10px;">
+                <div class="tier-title" style="font-size:10px; text-transform:uppercase; letter-spacing:2px; opacity:0.8;">Regional Manager Context</div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="font-size:1.2rem;">${regionalRM}</strong>
+                    <span style="background:rgba(255,255,255,0.2); padding:5px 12px; border-radius:20px; font-weight:700;">
+                        Total Activity — V: ${filtered.filter(f => f.activityType.includes("visit")).length} | C: ${filtered.filter(f => f.activityType.includes("call")).length}
+                    </span>
+                </div>
+            </div>
+            <div class="tier-panel">
+                <div class="tier-title">District Management Mapping</div>
+                <div class="manager-grid">${dmHtml}</div>
+            </div>
+            <div class="tier-panel">
+                <div class="tier-title">Unit Management Modules (Branch Grouped)</div>
+                <div class="manager-grid">${umHtml}</div>
+            </div>
+        </div>`;
+}
+
+/**
+ * UPDATED: exportToCSV with Clean Renjith Hierarchy
+ */
+function exportToCSV() {
+    if(activeFiltered.length === 0) return alert("No report data to export.");
+    
+    let csv = "RM,DM,UM,TM,Branch,Code,Employee,ID,Visit Target,Actual,Visit %,Call Target,Actual,Call %\n";
+    
+    const contextMap = {};
+    const renjithCodes = activeMap.map(m => m.renjithCode).filter(c => c);
+    activeMap.forEach(m => {
+        if(currentTM === 'RENJITH' && renjithCodes.includes(m.renjithCode)) contextMap[m.renjithCode] = m;
+        else if (m.tmOwner === currentTM) contextMap[m.branchCode] = m;
+    });
+    
+    const empAgg = {};
+    activeFiltered.forEach(r => {
+        if(!empAgg[r.empCode]) empAgg[r.empCode] = { ...r, v: 0, c: 0 };
+        if(r.activityType.includes("visit")) empAgg[r.empCode].v++;
+        if(r.activityType.includes("call")) empAgg[r.empCode].c++;
+    });
+
+    Object.values(empAgg).forEach(e => {
+        const h = contextMap[e.empCode] || contextMap[e.branchCode] || {rmName:"N/A", dmName:"N/A", umName:"N/A", tmOwner:currentTM};
         
-        const renjithCodes = mapping.map(m => m.renjithCode).filter(c => c);
+        // HIERARCHY OVERRIDE FOR EXPORT
+        let finalRM = h.rmName;
+        let finalDM = h.dmName;
+        let finalUM = h.umName;
+        let finalTM = h.tmOwner;
 
-        // BULLETPROOF: Logic checks for branch match AND explicitly ensures empCode is NOT in Renjith's list
-        rebuildDashboard(row => targetBranches.includes(row.branchCode) && !renjithCodes.includes(row.empCode));
-    };
+        if (currentTM === 'RENJITH') {
+            finalRM = "N/A"; // Clean RM
+            finalDM = "RENJITH REGION";
+            const checkUM = (h.renjithUM || "").trim().toUpperCase();
+            finalUM = (checkUM === "SENTHIL KUMAR") ? "SENTHIL KUMAR" : "RENJITH (Direct)";
+            finalTM = "RENJITH"; // Put Renjith back in the TM spot
+        }
 
-    /**
-     * @function downloadCSV
-     * @description High-fidelity export with native line break fix.
-     */
-    function downloadCSV() {
-        if (!activeDataCache) return alert("Generate data before export.");
-
-        let csv = "Branch,Associate ID,Associate Name,Visits Actual,Visits Target,Calls Actual,Calls Target\\n";
+        const vT = 2; 
+        const cT = 50;
         
-        Object.keys(activeDataCache).sort().forEach(br => {
-            Object.entries(activeDataCache[br])
-                .sort((a,b) => a[1].name.localeCompare(b[1].name))
-                .forEach(([code, emp]) => {
-                    csv += \`"\${br}","\${code}","\${emp.name}",\${emp.v},\${V_GOAL},\${emp.c},\${C_GOAL}\\n\`;
-                });
-        });
+        csv += `"${finalRM}","${finalDM}","${finalUM}","${finalTM}","${e.branchName}","${e.branchCode}","${e.empName}","${e.empCode}",${vT},${e.v},"${((e.v/vT)*100).toFixed(0)}%",${cT},${e.c},"${((e.c/cT)*100).toFixed(0)}%"\n`;
+    });
 
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const lnk = document.createElement("a");
-        const mTxt = document.getElementById("uiMonth").selectedOptions[0].text;
-        lnk.href = URL.createObjectURL(blob);
-        lnk.download = \`SML_Performance_Report_\${mTxt}.csv\`;
-        lnk.click();
-    }
-
-    // SYSTEM TRIGGERS
-    document.getElementById("uiMonth").onchange = () => rebuildDashboard();
-    document.getElementById("callRenjith").onclick = filterRenjith;
-    document.getElementById("callReset").onclick = () => rebuildDashboard(null);
-    document.getElementById("callExport").onclick = downloadCSV;
-<\/script>
-</body>
-</html>
-    `);
-
-    reportWin.document.close();
-};
-
-// INITIALIZATION COMMAND
-document.getElementById("actualActivityBtn").addEventListener("click", openActualActivityWindow);
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `SML_${currentTM}_Strategic_Report.csv`;
+    link.click();
+}
