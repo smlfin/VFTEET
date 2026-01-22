@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- START: TWO-TIERED FRONT-END PASSWORD PROTECTION ---
     const ACCESS_PASSWORD_FULL = "VFL123"; // Full access password
-    const ACCESS_PASSWORD_LIMITED = "A";  // Limited access password
+    const ACCESS_PASSWORD_LIMITED = "VFL123";  // Limited access password
     let currentAccessLevel = null; // To store 'full' or 'limited'
     const accessDeniedOverlay = document.getElementById('accessDeniedOverlay');
     const dashboardContent = document.getElementById('dashboardContent');
@@ -109,7 +109,7 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyaO5wpdeXC5wz85iz8
     const TARGETS = {
     'Default': {
         'Visit': 4,
-        'Call': 2
+        'Call': 50
     }
 };
   // Predefined list of branches for the dropdown and "no participation" check
@@ -305,16 +305,17 @@ const PREDEFINED_BRANCHES = [
 
   // NEW HELPER FUNCTION TO PARSE DATE WITH SECONDS (Included here for context, ensure it's present in your full script)
 function parseDateWithTime(dateString) {
-    // Expected format: DD/MM/YYYY HH:MM:SS
-    const parts = dateString.match(/(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})/);
+    // Updated regex: The seconds part (:(\d{2})) is now optional using the '?' quantifier
+    const parts = dateString.match(/(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})(?::(\d{2}))?/);
+    
     if (parts) {
         const [, day, month, year, hours, minutes, seconds] = parts;
-        // Note: Month is 0-indexed in JavaScript Date objects (January is 0, December is 11)
-        return new Date(year, month - 1, day, hours, minutes, seconds);
+        // If seconds are missing in the cell, default them to 0
+        const safeSeconds = seconds || 0; 
+        return new Date(year, month - 1, day, hours, minutes, safeSeconds);
     }
-    // Fallback for potentially different formats or invalid dates
-    // This might still produce an invalid date if the format is very off,
-    // but the main goal is to handle DD/MM/YYYY HH:MM:SS correctly.
+    
+    // Fallback if the date is in a completely different format
     return new Date(dateString); 
 }
 
