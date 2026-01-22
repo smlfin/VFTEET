@@ -44,6 +44,7 @@ body {
 .sml-btn:hover { opacity: 0.9; }
 .btn-renjith { background: #f59e0b; }
 .btn-tm { background: var(--accent-purple); }
+.btn-btn-reset { background: #059669; }
 .btn-download { background: #059669; }
 
 /* 3. STRATEGIC GRID SYSTEM (The "Side-by-Side" Fix) */
